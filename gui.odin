@@ -23,11 +23,15 @@ setup_clay :: proc() {
 
 // taken from https://github.com/nicbarker/clay/blob/main/bindings/odin/examples/clay-official-website/clay-official-website.odin
 loadFont :: proc(fontId: u16, fontSize: u16, path: cstring) {
-	assign_at(&raylibFonts,fontId, RaylibFont {
-		font   = rl.LoadFontEx(path, cast(i32)fontSize * 2, nil, 0),
-		fontId = cast(u16)fontId,
-		size = fontSize
-	})
+	assign_at(
+		&raylibFonts,
+		fontId,
+		RaylibFont {
+			font = rl.LoadFontEx(path, cast(i32)fontSize * 2, nil, 0),
+			fontId = cast(u16)fontId,
+			size = fontSize,
+		},
+	)
 	rl.SetTextureFilter(raylibFonts[fontId].font.texture, rl.TextureFilter.TRILINEAR)
 }
 
@@ -41,9 +45,13 @@ standard_button_config := clay.TextElementConfig {
 button :: proc($text: string) -> bool {
 	if clay.UI()(
 	{
-		layout = {childAlignment = {x = .Right, y = .Center}, padding = {32, 32, 8, 8}, sizing = {width = clay.SizingGrow({})}},
+		layout = {
+			childAlignment = {x = .Right, y = .Center},
+			padding = {32, 32, 8, 8},
+			sizing = {width = clay.SizingGrow({})},
+		},
 		backgroundColor = clay.Hovered() ? rl.IsMouseButtonDown(.LEFT) ? GRAY : LIGHTGRAY : WHITE,
-		border = {color = BLACK, width = {2,2,2,2, 0}},
+		border = {color = BLACK, width = {2, 2, 2, 2, 0}},
 	},
 	) {
 		clay.Text(text, &standard_button_config)
@@ -51,6 +59,10 @@ button :: proc($text: string) -> bool {
 	}
 
 	return false
+}
+
+h_fill :: proc() {
+	if clay.UI()({layout = {sizing = {width = clay.SizingGrow({})}}}) {}
 }
 
 ///
@@ -143,7 +155,7 @@ h_slider :: proc(value: ^f32) -> bool {
 			border = {color = {0, 0, 0, 255}, width = {1, 1, 1, 1, 0}},
 			floating = {
 				attachTo = .Parent,
-				offset = {value^ * bbox.width, 0}, 
+				offset = {value^ * bbox.width, 0},
 				attachment = {element = .CenterCenter, parent = .LeftCenter},
 				pointerCaptureMode = .Passthrough,
 			},
@@ -163,7 +175,7 @@ sv_picker :: proc(hue: f32, sat: ^f32, val: ^f32) -> bool {
 	if clay.UI()(
 	{
 		id = id,
-		layout = {sizing = {width = clay.SizingFixed(64), height = clay.SizingFixed(64)}},
+		layout = {sizing = {width = clay.SizingGrow({}), height = clay.SizingFixed(bbox.width)}},
 		backgroundColor = BLACK,
 		border = {width = {1, 1, 1, 1, 0}, color = BLACK},
 		custom = {customData = hsv_picker},
@@ -229,4 +241,35 @@ hsv_to_rgb :: proc(hsv: [3]f32) -> [4]f32 {
 	}
 	final_rgb := rgb * 255
 	return {final_rgb.r, final_rgb.g, final_rgb.b, 255}
+}
+
+rgb_to_hsv :: proc(rgba: [4]f32) -> [3]f32 {
+	r := rgba[0] / 255
+	g := rgba[1] / 255
+	b := rgba[2] / 255
+
+	v := max(r, max(g, b))
+	m := min(r, min(g, b))
+	
+	delta := v - m
+	s := v == 0.0 ? 0.0 : delta / v
+	h: f32 = 0.0
+
+	if delta == 0.0 {
+		h = 0.0
+	} else {
+		if v == r {
+			h = (g - b) / delta
+			if h < 0.0 {
+				h += 6.0
+			}
+		} else if v == g {
+			h = ((b - r) / delta) + 2.0
+		} else {
+			h = ((r - g) / delta) + 4.0
+		}
+		h /= 6.0
+	}
+
+	return {h, s, v}
 }

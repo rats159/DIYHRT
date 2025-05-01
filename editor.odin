@@ -196,7 +196,7 @@ pick_color :: proc(color: ^[3]f32, name: string) -> bool {
 	if clay.UI()(
 	{
 		layout = {
-			sizing = {width = clay.SizingGrow({})},
+			sizing = {width = clay.SizingFixed(128)},
 			layoutDirection = .TopToBottom,
 			childGap = 8,
 			padding = clay.PaddingAll(8)
@@ -297,7 +297,7 @@ pick_map :: proc(editor: ^Editor_Data) {
 
 save_map :: proc(editor: ^Editor_Data) {
 	path: cstring
-	filter := nfd.Filter_Item{".hrtmap Files", ".hrtmap"}
+	filter := nfd.Filter_Item{"hrtmap Files", "hrtmap"}
 	args := nfd.Save_Dialog_Args {
 		filter_list  = &filter,
 		filter_count = 1,
