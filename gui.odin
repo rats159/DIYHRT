@@ -273,3 +273,22 @@ rgb_to_hsv :: proc(rgba: [4]f32) -> [3]f32 {
 
 	return {h, s, v}
 }
+
+// True if button was pressed this frame
+error_button :: proc($text: string) -> bool {
+	if clay.UI()(
+	{
+		layout = {padding = clay.PaddingAll(8)},
+		border = {
+			width = {1,1,1,1,0},
+			color = BLACK
+		},
+		backgroundColor = clay.Hovered() ? rl.IsMouseButtonDown(.LEFT) ? {128, 128, 128, 255} : {192, 192, 192, 255} : {255, 255, 255, 255},
+	},
+	) {
+		clay.Text(text, &editor_button_config)
+		return clay.Hovered() && rl.IsMouseButtonReleased(.LEFT)
+	}
+
+	return false
+}

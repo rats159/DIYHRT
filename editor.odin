@@ -20,12 +20,12 @@ Save_Data :: struct {
 }
 
 Drag_Manager :: struct {
-	current_dragging:   ^rl.Vector2,
-	drag_offset:        rl.Vector2,
+	current_dragging: ^rl.Vector2,
+	drag_offset:      rl.Vector2,
 }
 
 Editor_Data :: struct {
-	using _: Drag_Manager,
+	using _:            Drag_Manager,
 	horseSpawns:        [dynamic]rl.Vector2,
 	carrot_exists:      bool,
 	carrotPos:          rl.Vector2,
@@ -38,6 +38,9 @@ Editor_Data :: struct {
 	//
 	walls:              rl.Image,
 	walls_tex:          rl.Texture,
+	//
+	error_message:      string,
+	error_active:       bool,
 }
 
 initialize_editor :: proc() {
@@ -49,13 +52,13 @@ initialize_editor :: proc() {
 	set_color("u_foreground2", &editor.fg2)
 	set_color("u_background1", &editor.bg1)
 	set_color("u_background2", &editor.bg2)
-	check := rl.GenImageChecked(720,540,16,16,{255,255,255,255},{192,192,192,255})
+	check := rl.GenImageChecked(720, 540, 16, 16, {255, 255, 255, 255}, {192, 192, 192, 255})
 	editor_bg = rl.LoadTextureFromImage(check)
 	rl.UnloadImage(check)
 }
 
 draw_editor :: proc(editor_world: ^Editor_Data) {
-	rl.DrawTexture(editor_bg,0,0,rl.WHITE)
+	rl.DrawTexture(editor_bg, 0, 0, rl.WHITE)
 	draw_editor_world(editor_world)
 	draw_editor_ui(editor_world)
 }
@@ -100,6 +103,51 @@ set_color :: proc(name: cstring, col: ^[3]f32) {
 }
 
 draw_editor_ui :: proc(world: ^Editor_Data) {
+	clay.SetPointerState(
+		transmute(clay.Vector2)rl.GetMousePosition(),
+		rl.IsMouseButtonDown(rl.MouseButton.LEFT),
+	)
+
+
+	clay.BeginLayout()
+
+	if world.error_active {
+		if clay.UI()(
+		{
+			layout = {
+				sizing = {width = clay.SizingGrow({}), height = clay.SizingGrow({})},
+				childAlignment = {x = .Center, y = .Center},
+			},
+			floating = {attachTo = .Root, zIndex = 99},
+			backgroundColor = {0, 0, 0, 192},
+		},
+		) {
+			if clay.UI()(
+			{
+				layout = {layoutDirection = .TopToBottom, childGap = 4},
+				backgroundColor = {255, 255, 255, 255},
+				border = {color = {0, 0, 0, 255}, width = {2, 2, 2, 2, 2}},
+			},
+			) {
+				window_titlebar("Uh Oh!")
+				if clay.UI()(
+				{
+					layout = {
+						layoutDirection = .TopToBottom,
+						padding = clay.PaddingAll(8),
+						childAlignment = {x = .Center},
+					},
+				},
+				) {
+					clay.TextDynamic(editor.error_message, &standard_button_config)
+					if error_button("Close") {
+						editor.error_active = false
+					}
+				}
+			}
+		}
+	}
+
 	for spawn in world.horseSpawns {
 		rl.DrawRectangleV(spawn, {32, 32}, {255, 0, 0, 128})
 	}
@@ -113,15 +161,6 @@ draw_editor_ui :: proc(world: ^Editor_Data) {
 		rl.DrawCircleV(world.gate_tl, 4, {255, 255, 0, 128})
 		rl.DrawCircleV(world.gate_br, 4, {255, 255, 0, 128})
 	}
-
-
-	clay.SetPointerState(
-		transmute(clay.Vector2)rl.GetMousePosition(),
-		rl.IsMouseButtonDown(rl.MouseButton.LEFT),
-	)
-
-
-	clay.BeginLayout()
 
 	if clay.UI()(window_styles(race_editor_pos)) {
 		window_titlebar("Race Editor")
@@ -199,24 +238,16 @@ pick_color :: proc(color: ^[3]f32, name: string) -> bool {
 			sizing = {width = clay.SizingFixed(128)},
 			layoutDirection = .TopToBottom,
 			childGap = 8,
-			padding = clay.PaddingAll(8)
+			padding = clay.PaddingAll(8),
 		},
 		floating = {
 			attachTo = .ElementWithId,
-			parentId = clay.ID(name,0).id,
-			attachment = {
-				parent = .RightTop,
-				element = .LeftTop
-			},
-			offset = {
-				8,0
-			}
+			parentId = clay.ID(name, 0).id,
+			attachment = {parent = .RightTop, element = .LeftTop},
+			offset = {8, 0},
 		},
 		backgroundColor = WHITE,
-		border = {
-			color = BLACK,
-			width = {2,2,2,2,1}
-		}
+		border = {color = BLACK, width = {2, 2, 2, 2, 1}},
 	},
 	) {
 		gb_changed := sv_picker(color.r, &color.g, &color.b)
@@ -249,7 +280,7 @@ editor_button_config := clay.TextElementConfig {
 editor_color_picker :: proc($text: string, color: [3]f32, active: ^bool) -> bool {
 	if clay.UI()(
 	{
-		id = clay.ID(text,0),
+		id = clay.ID(text, 0),
 		layout = {
 			childAlignment = {x = .Right, y = .Center},
 			padding = clay.PaddingAll(8),
@@ -286,13 +317,29 @@ pick_map :: proc(editor: ^Editor_Data) {
 	switch result {
 	case .Okay:
 		{
-			editor.walls = rl.LoadImage(path)
+			image := rl.LoadImage(path)
+
+			if image.width != 720 || image.height != 540 {
+				set_error_message(editor, "Image must be 720x540!")
+				return
+			}
+
+			editor.walls = image
 			editor.walls_tex = rl.LoadTextureFromImage(editor.walls)
 			nfd.FreePathU8(path)
+			return
 		}
 	case .Cancel:
 	case .Error:
 	}
+
+	set_error_message(editor, "Failed to load image, for some unknown reason")
+	return
+}
+
+set_error_message :: proc(editor: ^Editor_Data, $text: string) {
+	editor.error_message = text
+	editor.error_active = true
 }
 
 save_map :: proc(editor: ^Editor_Data) {
