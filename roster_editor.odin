@@ -157,7 +157,7 @@ save_roster :: proc(editor: ^Roster_Editor) {
 	}
 }
 
-load_roster :: proc(editor: ^Roster_Editor) {
+load_roster_to_edit :: proc(editor: ^Roster_Editor) {
 	path: cstring
 	filter := nfd.Filter_Item{"hrtrost Files", "hrtrost"}
 	args := nfd.Open_Dialog_Args {
@@ -219,7 +219,7 @@ draw_roster_menu :: proc(editor: ^Roster_Editor) {
 					mode = .Main_Menu
 				}
 				if editor_button("Load Roster") {
-					load_roster(editor)
+					load_roster_to_edit(editor)
 				}
 				if editor_button("Add Slot") {
 					add_slot(editor)

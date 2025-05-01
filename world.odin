@@ -68,17 +68,21 @@ add_horse_spawn :: proc(world: ^World, pos: [2]f32) {
 	append(&world.horseSpawns, pos)
 }
 
-spawn_horse :: proc(world: ^World, image_path: cstring, name: string, color: rl.Color) {
+spawn_horse :: proc(world: ^World, horse:Horse) {
 	if len(world.horseSpawns) == 0 {
 		fmt.println("WARN: Tried to add a horse with no available spawn spots")
 		return
 	}
 
+	horse := horse
+
 	pos := pop(&world.horseSpawns)
-	append(&world.horses, make_horse(pos, rl.LoadImage(image_path), name, color))
+	horse.pos = pos
+	append(&world.horses, horse) 
 }
 
 World :: struct {
+	horse_queue: []Horse,
 	horseSpawns:   [dynamic]rl.Vector2,
 	horses:        [dynamic]Horse,
 	carrotPos:     rl.Vector2,
@@ -90,6 +94,9 @@ World :: struct {
 	//
 	walls: rl.Image,
 	walls_tex: rl.Texture,
+	//
+	roster_loaded: bool,
+	walls_loaded: bool
 }
 
 check_image_overlap :: proc(

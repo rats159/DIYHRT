@@ -15,6 +15,7 @@ GameMode :: enum {
 	Main_Menu,
 	Edit,
 	Roster_Edit,
+	Race_Setup,
 }
 
 mode: GameMode = .Main_Menu
@@ -43,7 +44,7 @@ PAPYRUS :: 2
 
 main :: proc() {
 	nfd.Init()
-	rl.InitWindow(720, 540, "Custom Horse Race Tests")
+	rl.InitWindow(720, 540, "DIY HRT")
 	setup_clay()
 	load_assets()
 
@@ -71,6 +72,8 @@ main :: proc() {
 		}else if mode == .Roster_Edit {
 			draw_roster_editor(&roster_editor)
 			tick_roster_editor(&roster_editor)
+		} else if mode == .Race_Setup {
+			draw_race_setup(&world)
 		}
 		rl.EndDrawing()
 		free_all(context.temp_allocator)
@@ -128,7 +131,7 @@ draw_main_menu :: proc() {
 		},
 	},
 	) {
-		clay.Text("Custom Horse Race Tests", &textbox_config)
+		clay.Text("DIY HRT", &textbox_config)
 		if clay.UI()({layout = {
 				sizing = {width = clay.SizingFit({})},
 				childAlignment = {x = .Center},
@@ -136,16 +139,8 @@ draw_main_menu :: proc() {
 				childGap = 16,
 			}}){
 			if button("Begin a race") {
-				maybe_world, exists := load_race().?
-				if exists {
-					world = maybe_world
-					spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
-					spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
-					spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
-					spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
-					spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
-					mode = .Bet
-				}
+				init_race_setup()
+				mode = .Race_Setup
 			}
 			if button("Make a race") {
 				initialize_editor()
@@ -159,69 +154,6 @@ draw_main_menu :: proc() {
 
 	render_commands := clay.EndLayout()
 	clayRaylibRender(renderCommands = &render_commands)
-}
-
-load_race :: proc() -> Maybe(World) {
-	path: cstring
-	filter := nfd.Filter_Item{"Horse Race Test Maps", "hrtmap"}
-	args := nfd.Open_Dialog_Args {
-		filter_list  = &filter,
-		filter_count = 1,
-	}
-
-	result := nfd.OpenDialogU8_With(&path, &args)
-	switch result {
-	case .Okay:
-		{
-			race_data, err := os2.read_entire_file_from_path(string(path), context.allocator)
-			defer delete(race_data)
-
-			if err != nil {
-				fmt.println(err)
-				assert(false)
-			}
-
-			save_data: Save_Data
-			decode_err := json.unmarshal(race_data, &save_data)
-			if decode_err != nil {
-				fmt.println(decode_err)
-				assert(false)
-			}
-
-			world := make_world()
-
-			for spawn in save_data.horse_spawns {
-				add_horse_spawn(&world, spawn)
-			}
-
-			world.carrotPos = save_data.carrot_pos
-			world.gate = {
-				x      = save_data.gate.x,
-				y      = save_data.gate.y,
-				width  = abs(save_data.gate.z - save_data.gate.x),
-				height = abs(save_data.gate.y - save_data.gate.w),
-			}
-
-			world.walls = decode_rle(save_data.map_data)
-			world.walls_tex = rl.LoadTextureFromImage(world.walls)
-			assert(rl.IsImageValid(world.walls))
-			assert(rl.IsTextureValid(world.walls_tex))
-
-			set_color("u_foreground1",&save_data.foreground_1)
-			set_color("u_foreground2",&save_data.foreground_2)
-			set_color("u_background1",&save_data.background_1)
-			set_color("u_background2",&save_data.background_2)
-
-			return world
-
-		}
-	case .Cancel:
-		return nil
-	case .Error:
-		fmt.println("errror :(")
-	}
-
-	panic("Unable to load race")
 }
 
 decode_rle :: proc(rle: []u32) -> rl.Image {
