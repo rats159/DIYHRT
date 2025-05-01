@@ -115,7 +115,8 @@ window_titlebar :: proc($name: string) {
 	}
 }
 
-h_slider :: proc(value: ^f32, id: clay.ElementId) -> bool {
+h_slider :: proc(value: ^f32) -> bool {
+	id := clay.ID_LOCAL("h_slider")
 	hue_slider := new(Custom_Element, context.temp_allocator)
 	hue_slider^ = Hue_Slider{}
 	if clay.UI()(
@@ -142,7 +143,7 @@ h_slider :: proc(value: ^f32, id: clay.ElementId) -> bool {
 			border = {color = {0, 0, 0, 255}, width = {1, 1, 1, 1, 0}},
 			floating = {
 				attachTo = .Parent,
-				offset = {value^ * bbox.width, 0},
+				offset = {value^ * bbox.width, 0}, 
 				attachment = {element = .CenterCenter, parent = .LeftCenter},
 				pointerCaptureMode = .Passthrough,
 			},
@@ -153,7 +154,8 @@ h_slider :: proc(value: ^f32, id: clay.ElementId) -> bool {
 	return false
 }
 
-sv_picker :: proc(hue: f32, sat: ^f32, val: ^f32, id: clay.ElementId) -> bool {
+sv_picker :: proc(hue: f32, sat: ^f32, val: ^f32) -> bool {
+	id := clay.ID_LOCAL("sv_picker")
 	bbox := clay.GetElementData(id).boundingBox
 	hsv_picker := new(Custom_Element, context.temp_allocator)
 	hsv_picker^ = Hsv_Picker(hue)
@@ -161,7 +163,7 @@ sv_picker :: proc(hue: f32, sat: ^f32, val: ^f32, id: clay.ElementId) -> bool {
 	if clay.UI()(
 	{
 		id = id,
-		layout = {sizing = {width = clay.SizingGrow({}), height = clay.SizingFixed(bbox.width)}},
+		layout = {sizing = {width = clay.SizingFixed(64), height = clay.SizingFixed(64)}},
 		backgroundColor = BLACK,
 		border = {width = {1, 1, 1, 1, 0}, color = BLACK},
 		custom = {customData = hsv_picker},

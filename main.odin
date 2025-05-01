@@ -36,8 +36,9 @@ hue_slider_shader: rl.Shader
 world: World
 
 NOTO_SANS_REGULAR :: 0
-NOTO_SANS_BOLD :: 4
-PAPYRUS :: 6
+NOTO_SANS_REGULAR_18 :: 3
+NOTO_SANS_BOLD :: 1
+PAPYRUS :: 2
 
 
 main :: proc() {
@@ -86,6 +87,7 @@ load_assets :: proc() {
 	blank_horse = rl.LoadTexture("./assets/colorless_horse.png")
 
 	loadFont(NOTO_SANS_REGULAR, 48, "./assets/NotoSans-Regular.ttf")
+	loadFont(NOTO_SANS_REGULAR_18, 18, "./assets/NotoSans-Regular.ttf")
 	loadFont(NOTO_SANS_BOLD, 48, "./assets/NotoSans-Bold.ttf")
 
 	loadFont(PAPYRUS, 128, "./assets/papyrus.ttf")

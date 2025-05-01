@@ -219,8 +219,8 @@ pick_color :: proc(color: ^[3]f32, name: string) -> bool {
 		}
 	},
 	) {
-		gb_changed := sv_picker(color.r, &color.g, &color.b, clay.ID(name, 1))
-		r_changed := h_slider(&color.r, clay.ID(name, 2))
+		gb_changed := sv_picker(color.r, &color.g, &color.b)
+		r_changed := h_slider(&color.r)
 		return r_changed || gb_changed
 	}
 
