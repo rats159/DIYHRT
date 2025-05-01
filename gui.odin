@@ -26,12 +26,13 @@ loadFont :: proc(fontId: u16, fontSize: u16, path: cstring) {
 	assign_at(&raylibFonts,fontId, RaylibFont {
 		font   = rl.LoadFontEx(path, cast(i32)fontSize * 2, nil, 0),
 		fontId = cast(u16)fontId,
+		size = fontSize
 	})
 	rl.SetTextureFilter(raylibFonts[fontId].font.texture, rl.TextureFilter.TRILINEAR)
 }
 
 standard_button_config := clay.TextElementConfig {
-	fontId        = NOTO_SANS_REGULAR_24,
+	fontId        = NOTO_SANS_REGULAR,
 	fontSize      = 24,
 	textColor     = BLACK,
 	textAlignment = .Right,

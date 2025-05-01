@@ -35,12 +35,8 @@ hue_slider_shader: rl.Shader
 
 world: World
 
-NOTO_SANS_REGULAR_48 :: 0
-NOTO_SANS_REGULAR_32 :: 1
-NOTO_SANS_REGULAR_24 :: 2
-NOTO_SANS_REGULAR_16 :: 3
-NOTO_SANS_BOLD_48 :: 4
-NOTO_SANS_BOLD_24 :: 5
+NOTO_SANS_REGULAR :: 0
+NOTO_SANS_BOLD :: 4
 PAPYRUS :: 6
 
 
@@ -89,16 +85,10 @@ load_assets :: proc() {
 	winner_background = rl.LoadTexture("./assets/winner_bg.png")
 	blank_horse = rl.LoadTexture("./assets/colorless_horse.png")
 
-	loadFont(NOTO_SANS_REGULAR_48, 48, "./assets/NotoSans-Regular.ttf")
-	loadFont(NOTO_SANS_REGULAR_32, 32, "./assets/NotoSans-Regular.ttf")
-	loadFont(NOTO_SANS_REGULAR_24, 24, "./assets/NotoSans-Regular.ttf")
-	loadFont(NOTO_SANS_REGULAR_16, 16, "./assets/NotoSans-Regular.ttf")
-	loadFont(NOTO_SANS_BOLD_48, 48, "./assets/NotoSans-Bold.ttf")
-	loadFont(NOTO_SANS_BOLD_24, 24, "./assets/NotoSans-Bold.ttf")
+	loadFont(NOTO_SANS_REGULAR, 48, "./assets/NotoSans-Regular.ttf")
+	loadFont(NOTO_SANS_BOLD, 48, "./assets/NotoSans-Bold.ttf")
 
-	for i in 1..=u16(128) {
-		loadFont(PAPYRUS + i, i, "./assets/papyrus.ttf")
-	}
+	loadFont(PAPYRUS, 128, "./assets/papyrus.ttf")
 
 	map_shader = rl.LoadShader(nil, "./assets/map.frag")
 	hsv_picker_shader = rl.LoadShader(nil, "./assets/hsv_picker.frag")
@@ -119,7 +109,7 @@ draw_main_menu :: proc() {
 	)
 
 	textbox_config := clay.TextElementConfig {
-		fontId    = NOTO_SANS_BOLD_48,
+		fontId    = NOTO_SANS_BOLD,
 		fontSize  = 48,
 		textColor = {0, 0, 0, 255},
 	}
@@ -138,31 +128,31 @@ draw_main_menu :: proc() {
 	) {
 		clay.Text("Custom Horse Race Tests", &textbox_config)
 		if clay.UI()({layout = {
-			sizing = {width = clay.SizingFit({})},
-			childAlignment = {x = .Center},
-			layoutDirection = .TopToBottom,
-			childGap = 16,
-		}}){
-		if button("Begin a race") {
-			maybe_world, exists := load_race().?
-			if exists {
-				world = maybe_world
-				spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
-				spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
-				spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
-				spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
-				spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
-				mode = .Bet
+				sizing = {width = clay.SizingFit({})},
+				childAlignment = {x = .Center},
+				layoutDirection = .TopToBottom,
+				childGap = 16,
+			}}){
+			if button("Begin a race") {
+				maybe_world, exists := load_race().?
+				if exists {
+					world = maybe_world
+					spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
+					spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
+					spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
+					spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
+					spawn_horse(&world, "./horses/cyan.png", "Leatherbound Judiciary Manatee", {0, 179, 179, 255})
+					mode = .Bet
+				}
 			}
-		}
-		if button("Make a race") {
-			initialize_editor()
-			mode = .Edit
-		}
-		if button("Make a roster") {
-			init_roster_editor()
-			mode = .Roster_Edit
-		}}
+			if button("Make a race") {
+				initialize_editor()
+				mode = .Edit
+			}
+			if button("Make a roster") {
+				init_roster_editor()
+				mode = .Roster_Edit
+			}}
 	}
 
 	render_commands := clay.EndLayout()
@@ -268,23 +258,24 @@ decode_rle :: proc(rle: []u32) -> rl.Image {
 draw_winner :: proc() {
 	rl.DrawTexture(winner_background, 0, 0, rl.WHITE)
 	rl.DrawTexture(blank_horse, 0, 0, winner.color)
+
+	config: clay.TextElementConfig = {
+		textColor = BLACK,
+		fontSize  = u16(textSize),
+		fontId    = PAPYRUS,
+	}
+
 	clay.BeginLayout()
-	if clay.UI()({}){
-		config: clay.TextElementConfig = {
-			textColor = BLACK,
-			fontSize = u16(textSize),
-			fontId = PAPYRUS + u16(textSize) - 1
-		} 
+
+	if clay.UI()(
+		{layout = {sizing = {height = clay.SizingGrow({})}, childAlignment = {y = .Bottom}}},
+	) {
+
 		clay.TextDynamic(winner.name, &config)
 	}
-	// rl.DrawTextEx(
-	// 	papyrus,
-	// 	winner.name,
-	// 	{0, f32(rl.GetScreenHeight()) - textSize},
-	// 	textSize,
-	// 	0,
-	// 	rl.BLACK,
-	// )
+
+	cmds := clay.EndLayout()
+	clayRaylibRender(&cmds)
 }
 
 tick_winner :: proc() {

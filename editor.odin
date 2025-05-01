@@ -187,7 +187,7 @@ draw_map_menu :: proc(world: ^Editor_Data) {
 }
 
 titlebar_config := clay.TextElementConfig {
-	fontId    = NOTO_SANS_BOLD_24,
+	fontId    = NOTO_SANS_BOLD,
 	fontSize  = 24,
 	textColor = {0, 0, 0, 255},
 }
@@ -241,7 +241,7 @@ window_styles :: proc(attach: rl.Vector2) -> clay.ElementDeclaration {
 }
 
 editor_button_config := clay.TextElementConfig {
-	fontId        = NOTO_SANS_REGULAR_16,
+	fontId        = NOTO_SANS_REGULAR,
 	fontSize      = 16,
 	textColor     = {0, 0, 0, 255},
 	textAlignment = .Right,

@@ -10,6 +10,7 @@ import "core:reflect"
 RaylibFont :: struct {
 	fontId: u16, 
 	font:   raylib.Font,
+	size: u16
 }
 
 Hsv_Picker :: distinct f32
@@ -39,6 +40,9 @@ measureText :: proc "c" (
 	textHeight := cast(f32)config.fontSize
 	fontToUse := raylibFonts[config.fontId].font
 
+	load_size := raylibFonts[config.fontId].size
+	draw_size := config.fontSize
+
 	for i in 0 ..< int(text.length) {
 		index := cast(i32)text.chars[i] - 32
 		if (fontToUse.glyphs[index].advanceX != 0) {
@@ -51,7 +55,7 @@ measureText :: proc "c" (
 
 	maxTextWidth = max(maxTextWidth, lineTextWidth)
 
-	textSize.width = maxTextWidth / 2
+	textSize.width = maxTextWidth / 2 * f32(draw_size) / f32(load_size)
 	textSize.height = textHeight
 
 	return textSize
