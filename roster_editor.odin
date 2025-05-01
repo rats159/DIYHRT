@@ -42,7 +42,6 @@ init_roster_editor :: proc() {
 }
 
 draw_roster_editor :: proc(editor: ^Roster_Editor) {
-	rl.ClearBackground(rl.RED)
 	draw_roster_menu(editor)
 }
 

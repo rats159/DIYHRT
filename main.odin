@@ -16,6 +16,7 @@ GameMode :: enum {
 	Edit,
 	Roster_Edit,
 	Race_Setup,
+	Quit,
 }
 
 mode: GameMode = .Main_Menu
@@ -69,11 +70,13 @@ main :: proc() {
 		} else if mode == .Edit {
 			draw_editor(&editor)
 			tick_editor(&editor)
-		}else if mode == .Roster_Edit {
+		} else if mode == .Roster_Edit {
 			draw_roster_editor(&roster_editor)
 			tick_roster_editor(&roster_editor)
 		} else if mode == .Race_Setup {
 			draw_race_setup(&world)
+		} else if mode == .Quit {
+			break
 		}
 		rl.EndDrawing()
 		free_all(context.temp_allocator)
@@ -99,7 +102,7 @@ load_assets :: proc() {
 	hsv_picker_shader = rl.LoadShader(nil, "./assets/hsv_picker.frag")
 	hue_slider_shader = rl.LoadShader(nil, "./assets/hue_slider.frag")
 
-	white_img := rl.GenImageColor(1,1,rl.WHITE)
+	white_img := rl.GenImageColor(1, 1, rl.WHITE)
 	dummy_tex = rl.LoadTextureFromImage(white_img)
 	rl.UnloadImage(white_img)
 }
@@ -132,12 +135,16 @@ draw_main_menu :: proc() {
 	},
 	) {
 		clay.Text("DIY HRT", &textbox_config)
-		if clay.UI()({layout = {
+		if clay.UI()(
+		{
+			layout = {
 				sizing = {width = clay.SizingFit({})},
 				childAlignment = {x = .Center},
 				layoutDirection = .TopToBottom,
 				childGap = 16,
-			}}){
+			},
+		},
+		) {
 			if button("Begin a race") {
 				init_race_setup()
 				mode = .Race_Setup
@@ -149,8 +156,11 @@ draw_main_menu :: proc() {
 			if button("Make a roster") {
 				init_roster_editor()
 				mode = .Roster_Edit
-			}}
-	}
+			}
+			if button("Quit") {
+				mode = .Quit
+			}
+		}}
 
 	render_commands := clay.EndLayout()
 	clayRaylibRender(renderCommands = &render_commands)
@@ -202,7 +212,7 @@ draw_winner :: proc() {
 	clay.BeginLayout()
 
 	if clay.UI()(
-		{layout = {sizing = {height = clay.SizingGrow({})}, childAlignment = {y = .Bottom}}},
+	{layout = {sizing = {height = clay.SizingGrow({})}, childAlignment = {y = .Bottom}}},
 	) {
 
 		clay.TextDynamic(winner.name, &config)

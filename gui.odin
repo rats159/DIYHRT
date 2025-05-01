@@ -46,7 +46,7 @@ button :: proc($text: string) -> bool {
 	if clay.UI()(
 	{
 		layout = {
-			childAlignment = {x = .Right, y = .Center},
+			childAlignment = {x = .Center, y = .Center},
 			padding = {32, 32, 8, 8},
 			sizing = {width = clay.SizingGrow({})},
 		},
@@ -250,7 +250,7 @@ rgb_to_hsv :: proc(rgba: [4]f32) -> [3]f32 {
 
 	v := max(r, max(g, b))
 	m := min(r, min(g, b))
-	
+
 	delta := v - m
 	s := v == 0.0 ? 0.0 : delta / v
 	h: f32 = 0.0
