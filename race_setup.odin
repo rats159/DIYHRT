@@ -11,6 +11,9 @@ setup_error_message: string
 setup_error_active: bool
 
 init_race_setup :: proc() {
+	if world.horse_queue != nil {
+		delete(world.horse_queue)
+	}
 	world = make_world()
 }
 
@@ -39,7 +42,7 @@ draw_race_setup :: proc(world: ^World) {
 	) {
 		if button("Begin!") {
 			if !world.walls_loaded || !world.roster_loaded {
-				set_setup_error_message("A race needs a roster and a track!")
+				set_setup_error_message(fmt.aprintf("A race needs a roster and a track!"))
 				return
 			} else {
 				for horse in world.horse_queue {
@@ -123,26 +126,24 @@ load_roster_to_race :: proc(world: ^World) {
 	case .Okay:
 
 	case .Cancel:
-		set_setup_error_message("Load cancelled!")
+		set_setup_error_message(fmt.aprintf("Load cancelled!"))
 		return
 	case .Error:
-		set_setup_error_message("Unknown load error.")
+		set_setup_error_message(fmt.aprintf("Unknown load error."))
 		return
 	}
 
 	file, open_err := os2.open(string(path), {.Read})
 
 	if open_err != nil {
-		err_name := fmt.aprintf("File open error: %v",open_err)
-		set_setup_error_message(err_name)
+		set_setup_error_message(fmt.aprintf("File open error: %v",open_err))
 		return
 	}
 
 	bytes, read_err := os2.read_entire_file(file, context.temp_allocator)
 
 	if read_err != nil {
-		err_name := fmt.aprintf("File read error: %v",read_err)
-		set_setup_error_message(err_name)
+		set_setup_error_message(fmt.aprintf("File read error: %v",read_err))
 		return
 	}
 
@@ -150,8 +151,7 @@ load_roster_to_race :: proc(world: ^World) {
 	unmarshal_err := cbor.unmarshal_from_string(string(bytes), &saveable_roster)
 
 	if unmarshal_err != nil {
-		err_name := fmt.aprintf("Decoding error: %v",unmarshal_err)
-		set_setup_error_message(err_name)
+		set_setup_error_message(fmt.aprintf("Decoding error: %v",unmarshal_err))
 		return
 	}
 
@@ -197,10 +197,10 @@ load_map_to_race :: proc(world: ^World) {
 	switch result {
 	case .Okay:
 	case .Cancel:
-		set_setup_error_message("Load Cancelled")
+		set_setup_error_message(fmt.aprintf("Load Cancelled"))
 		return
 	case .Error:
-		set_setup_error_message("Load failed")
+		set_setup_error_message(fmt.aprintf("Load failed"))
 		return
 	}
 
@@ -208,8 +208,7 @@ load_map_to_race :: proc(world: ^World) {
 	defer delete(race_data)
 
 	if err != nil {
-		err_name := fmt.aprintf("File read error: %v",err)
-		set_setup_error_message(err_name)
+		set_setup_error_message(fmt.aprintf("File read error: %v",err))
 		return
 	}
 
@@ -223,8 +222,7 @@ load_map_to_race :: proc(world: ^World) {
 	defer delete(save_data.horse_spawns)
 
 	if decode_err != nil {
-		err_name := fmt.aprintf("Decode error: %v",decode_err)
-		set_setup_error_message(err_name)
+		set_setup_error_message(fmt.aprintf("Decode error: %v",decode_err))
 		return
 	}
 

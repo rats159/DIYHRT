@@ -286,7 +286,7 @@ pick_map :: proc(editor: ^Editor_Data) {
 			image := rl.LoadImage(path)
 
 			if image.width != 720 || image.height != 540 {
-				set_error_message(editor, "Image must be 720x540!")
+				set_error_message(editor, fmt.aprintf("Image must be 720x540!"))
 				return
 			}
 
@@ -297,10 +297,10 @@ pick_map :: proc(editor: ^Editor_Data) {
 			return
 		}
 	case .Cancel:
-		set_error_message(editor, "Load Cancelled")
+		set_error_message(editor, fmt.aprintf("Load Cancelled"))
 		return
 	case .Error:
-		set_error_message(editor, "Failed to load image, for some unknown reason")
+		set_error_message(editor, fmt.aprintf("Failed to load image, for some unknown reason"))
 		return
 	}
 
@@ -315,19 +315,19 @@ set_error_message :: proc(editor: ^Editor_Data, text: string, location := #calle
 
 save_map :: proc(editor: ^Editor_Data) {
 	if !editor.walls_loaded {
-		set_error_message(editor,"No walls texture loaded!")
+		set_error_message(editor,fmt.aprintf("No walls texture loaded!"))
 		return
 	}
 	if !editor.carrot_exists {
-		set_error_message(editor, "No carrot set!")
+		set_error_message(editor, fmt.aprintf("No carrot set!"))
 		return
 	}
 	if !editor.gate_exists {
-		set_error_message(editor, "No gate set!")
+		set_error_message(editor, fmt.aprintf("No gate set!"))
 		return
 	}
 	if len(editor.horseSpawns) == 0 {
-		set_error_message(editor, "No spawns!")
+		set_error_message(editor, fmt.aprintf("No spawns!"))
 		return
 	}
 
@@ -344,10 +344,10 @@ save_map :: proc(editor: ^Editor_Data) {
 	case .Okay:
 
 	case .Cancel:
-		set_error_message(editor, "Save Cancelled")
+		set_error_message(editor, fmt.aprintf("Save Cancelled"))
 		return
 	case .Error:
-		set_error_message(editor,"Something unexpected happened")
+		set_error_message(editor,fmt.aprintf("Something unexpected happened"))
 		return
 	}
 
@@ -391,24 +391,21 @@ save_map :: proc(editor: ^Editor_Data) {
 	bytes, err := cbor.marshal(data)
 
 	if err != nil {
-		err_name := fmt.aprintf("Encoding error: %v",err)
-		set_error_message(editor, err_name)
+		set_error_message(editor, fmt.aprintf("Encoding error: %v",err))
 		return
 	}
 
 	file, open_err := os2.open(string(path), {.Read, .Write, .Create})
 
 	if open_err != nil {
-		err_name := fmt.aprintf("File open error: %v",open_err)
-		set_error_message(editor, err_name)
+		set_error_message(editor, fmt.aprintf("File open error: %v",open_err))
 		return
 	}
 
 	_, write_err := os2.write(file, bytes)
 
 	if write_err != nil {
-		err_name := fmt.aprintf("File write error: %v",write_err)
-		set_error_message(editor, err_name)
+		set_error_message(editor, fmt.aprintf("File write error: %v",write_err))
 		return
 	}
 }
