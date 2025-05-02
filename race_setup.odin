@@ -18,42 +18,7 @@ draw_race_setup :: proc(world: ^World) {
 	clay.SetPointerState(rl.GetMousePosition(), rl.IsMouseButtonDown(.LEFT))
 	clay.BeginLayout()
 
-	if setup_error_active {
-		if clay.UI()(
-		{
-			layout = {
-				sizing = {width = clay.SizingGrow({}), height = clay.SizingGrow({})},
-				childAlignment = {x = .Center, y = .Center},
-			},
-			floating = {attachTo = .Root, zIndex = 99},
-			backgroundColor = {0, 0, 0, 192},
-		},
-		) {
-			if clay.UI()(
-			{
-				layout = {layoutDirection = .TopToBottom, childGap = 4},
-				backgroundColor = {255, 255, 255, 255},
-				border = {color = {0, 0, 0, 255}, width = {2, 2, 2, 2, 2}},
-			},
-			) {
-				window_titlebar("Uh Oh!")
-				if clay.UI()(
-				{
-					layout = {
-						layoutDirection = .TopToBottom,
-						padding = clay.PaddingAll(8),
-						childAlignment = {x = .Center},
-					},
-				},
-				) {
-					clay.TextDynamic(setup_error_message, &standard_button_config)
-					if error_button("Close") {
-						setup_error_active = false
-					}
-				}
-			}
-		}
-	}
+	error_box(&setup_error_active, setup_error_message)
 
 
 	if clay.UI()({}) {
@@ -97,7 +62,8 @@ draw_race_setup :: proc(world: ^World) {
 	clayRaylibRender(&render_commands)
 }
 
-set_setup_error_message :: proc($text: string) {
+@(private = "file")
+set_setup_error_message :: proc(text: string) {
 	setup_error_message = text
 	setup_error_active = true
 }
@@ -155,30 +121,37 @@ load_roster_to_race :: proc(world: ^World) {
 	switch result {
 	case .Okay:
 
-	case .Cancel, .Error:
-		assert(false)
+	case .Cancel:
+		set_setup_error_message("Load cancelled!")
+		return
+	case .Error:
+		set_setup_error_message("Unknown load error.")
+		return
 	}
 
 	file, open_err := os2.open(string(path), {.Read})
 
 	if open_err != nil {
-		fmt.println(open_err)
-		assert(false)
+		err_name := fmt.tprintf("File open error: %v",open_err)
+		set_setup_error_message(err_name)
+		return
 	}
 
 	bytes, read_err := os2.read_entire_file(file, context.temp_allocator)
 
 	if read_err != nil {
-		fmt.println(read_err)
-		assert(false)
+		err_name := fmt.tprintf("File read error: %v",read_err)
+		set_setup_error_message(err_name)
+		return
 	}
 
 	saveable_roster: Saveable_Roster
-	err := cbor.unmarshal_from_string(string(bytes), &saveable_roster)
+	unmarshal_err := cbor.unmarshal_from_string(string(bytes), &saveable_roster)
 
-	if err != nil {
-		fmt.println(err)
-		assert(false)
+	if unmarshal_err != nil {
+		err_name := fmt.tprintf("Decoding error: %v",unmarshal_err)
+		set_setup_error_message(err_name)
+		return
 	}
 
 	load_roster_into_world(saveable_roster, world)
@@ -223,9 +196,10 @@ load_map_to_race :: proc(world: ^World) {
 	switch result {
 	case .Okay:
 	case .Cancel:
+		set_setup_error_message("Load Cancelled")
 		return
 	case .Error:
-		fmt.println("errror :(")
+		set_setup_error_message("Load failed")
 		return
 	}
 
@@ -233,8 +207,9 @@ load_map_to_race :: proc(world: ^World) {
 	defer delete(race_data)
 
 	if err != nil {
-		fmt.println(err)
-		assert(false)
+		err_name := fmt.tprintf("File read error: %v",err)
+		set_setup_error_message(err_name)
+		return
 	}
 
 	if world.walls_loaded {
@@ -247,8 +222,9 @@ load_map_to_race :: proc(world: ^World) {
 	defer delete(save_data.horse_spawns)
 
 	if decode_err != nil {
-		fmt.println(decode_err)
-		assert(false)
+		err_name := fmt.tprintf("Decode error: %v",decode_err)
+		set_setup_error_message(err_name)
+		return
 	}
 
 	for spawn in save_data.horse_spawns {

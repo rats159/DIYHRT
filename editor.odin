@@ -38,6 +38,7 @@ Editor_Data :: struct {
 	//
 	walls:              rl.Image,
 	walls_tex:          rl.Texture,
+	walls_loaded: bool,
 	//
 	error_message:      string,
 	error_active:       bool,
@@ -111,44 +112,9 @@ draw_editor_ui :: proc(world: ^Editor_Data) {
 
 	clay.BeginLayout()
 
-	if world.error_active {
-		if clay.UI()(
-		{
-			layout = {
-				sizing = {width = clay.SizingGrow({}), height = clay.SizingGrow({})},
-				childAlignment = {x = .Center, y = .Center},
-			},
-			floating = {attachTo = .Root, zIndex = 99},
-			backgroundColor = {0, 0, 0, 192},
-		},
-		) {
-			if clay.UI()(
-			{
-				layout = {layoutDirection = .TopToBottom, childGap = 4},
-				backgroundColor = {255, 255, 255, 255},
-				border = {color = {0, 0, 0, 255}, width = {2, 2, 2, 2, 2}},
-			},
-			) {
-				window_titlebar("Uh Oh!")
-				if clay.UI()(
-				{
-					layout = {
-						layoutDirection = .TopToBottom,
-						padding = clay.PaddingAll(8),
-						childAlignment = {x = .Center},
-					},
-				},
-				) {
-					clay.TextDynamic(editor.error_message, &standard_button_config)
-					if error_button("Close") {
-						editor.error_active = false
-					}
-				}
-			}
-		}
-	}
+	error_box(&world.error_active, world.error_message)
 
-	for spawn in world.horseSpawns {
+	for spawn in world.horseSpawns { 
 		rl.DrawRectangleV(spawn, {32, 32}, {255, 0, 0, 128})
 	}
 
@@ -324,25 +290,47 @@ pick_map :: proc(editor: ^Editor_Data) {
 				return
 			}
 
+			editor.walls_loaded = true
 			editor.walls = image
 			editor.walls_tex = rl.LoadTextureFromImage(editor.walls)
 			nfd.FreePathU8(path)
 			return
 		}
 	case .Cancel:
+		set_error_message(editor, "Load Cancelled")
+		return
 	case .Error:
+		set_error_message(editor, "Failed to load image, for some unknown reason")
+		return
 	}
 
-	set_error_message(editor, "Failed to load image, for some unknown reason")
-	return
 }
 
-set_error_message :: proc(editor: ^Editor_Data, $text: string) {
+@(private = "file")
+set_error_message :: proc(editor: ^Editor_Data, text: string, location := #caller_location) {
+	fmt.printfln("Error message triggered at %v", location)
 	editor.error_message = text
 	editor.error_active = true
 }
 
 save_map :: proc(editor: ^Editor_Data) {
+	if !editor.walls_loaded {
+		set_error_message(editor,"No walls texture loaded!")
+		return
+	}
+	if !editor.carrot_exists {
+		set_error_message(editor, "No carrot set!")
+		return
+	}
+	if !editor.gate_exists {
+		set_error_message(editor, "No gate set!")
+		return
+	}
+	if len(editor.horseSpawns) == 0 {
+		set_error_message(editor, "No spawns!")
+		return
+	}
+
 	path: cstring
 	filter := nfd.Filter_Item{"hrtmap Files", "hrtmap"}
 	args := nfd.Save_Dialog_Args {
@@ -355,8 +343,12 @@ save_map :: proc(editor: ^Editor_Data) {
 	switch result {
 	case .Okay:
 
-	case .Cancel, .Error:
-		assert(false)
+	case .Cancel:
+		set_error_message(editor, "Save Cancelled")
+		return
+	case .Error:
+		set_error_message(editor,"Something unexpected happened")
+		return
 	}
 
 	runs := [dynamic]u32{}
@@ -399,22 +391,25 @@ save_map :: proc(editor: ^Editor_Data) {
 	bytes, err := cbor.marshal(data)
 
 	if err != nil {
-		fmt.println(err)
-		assert(false)
+		err_name := fmt.tprintf("Encoding error: %v",err)
+		set_error_message(editor, err_name)
+		return
 	}
 
 	file, open_err := os2.open(string(path), {.Read, .Write, .Create})
 
 	if open_err != nil {
-		fmt.println(open_err)
-		assert(false)
+		err_name := fmt.tprintf("File open error: %v",open_err)
+		set_error_message(editor, err_name)
+		return
 	}
 
 	_, write_err := os2.write(file, bytes)
 
 	if write_err != nil {
-		fmt.println(write_err)
-		assert(false)
+		err_name := fmt.tprintf("File write error: %v",write_err)
+		set_error_message(editor, err_name)
+		return
 	}
 }
 

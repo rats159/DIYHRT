@@ -53,6 +53,7 @@ main :: proc() {
 	context.allocator = mem.tracking_allocator(&track)
 
 	nfd.Init()
+	rl.SetTraceLogLevel(.NONE)
 	rl.InitWindow(720, 540, "DIY HRT")
 	setup_clay()
 	load_assets()

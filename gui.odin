@@ -281,6 +281,45 @@ rgb_to_hsv :: proc(rgba: [4]f32) -> [3]f32 {
 	return {h, s, v}
 }
 
+error_box :: proc(open: ^bool, message: string) {
+	if open^ {
+		if clay.UI()(
+		{
+			layout = {
+				sizing = {width = clay.SizingGrow({}), height = clay.SizingGrow({})},
+				childAlignment = {x = .Center, y = .Center},
+			},
+			floating = {attachTo = .Root, zIndex = 99},
+			backgroundColor = {0, 0, 0, 192},
+		},
+		) {
+			if clay.UI()(
+			{
+				layout = {layoutDirection = .TopToBottom, childGap = 4},
+				backgroundColor = {255, 255, 255, 255},
+				border = {color = {0, 0, 0, 255}, width = {2, 2, 2, 2, 2}},
+			},
+			) {
+				window_titlebar("Uh Oh!")
+				if clay.UI()(
+				{
+					layout = {
+						layoutDirection = .TopToBottom,
+						padding = clay.PaddingAll(8),
+						childAlignment = {x = .Center},
+					},
+				},
+				) {
+					clay.TextDynamic(message, &standard_button_config)
+					if error_button("Close") {
+						open ^= false
+					}
+				}
+			}
+		}
+	}
+}
+
 // True if button was pressed this frame
 error_button :: proc($text: string) -> bool {
 	if clay.UI()(

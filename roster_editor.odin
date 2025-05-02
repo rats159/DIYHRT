@@ -2,22 +2,22 @@ package hrt
 
 import clay "./clay-odin"
 import nfd "./nativefiledialog"
+import "core:encoding/cbor"
 import "core:fmt"
+import "core:os/os2"
 import "core:strings"
 import rl "vendor:raylib"
 import stbi "vendor:stb/image"
-import "core:encoding/cbor"
-import "core:os/os2"
 
 Saveable_Roster :: struct {
-	slots: []Saveable_Slot
+	slots: []Saveable_Slot,
 }
 
 Saveable_Slot :: struct {
-	name: string,
-	color: [4]f32,
-	image: []u8,
-	image_width: i32,
+	name:         string,
+	color:        [4]f32,
+	image:        []u8,
+	image_width:  i32,
 	image_height: i32,
 }
 
@@ -32,8 +32,11 @@ Horse_Slot :: struct {
 }
 
 Roster_Editor :: struct {
-	slots:        [dynamic]Horse_Slot,
-	active_input: ^strings.Builder,
+	slots:         [dynamic]Horse_Slot,
+	active_input:  ^strings.Builder,
+	//
+	error_message: string,
+	error_active:  bool,
 }
 
 roster_editor: Roster_Editor
@@ -67,9 +70,9 @@ tick_text_inputs :: proc(editor: ^Roster_Editor) {
 	}
 }
 
-convert_to_saveable :: proc(editor: ^Roster_Editor) -> Saveable_Roster{
-	slots := make([]Saveable_Slot,len(editor.slots), context.temp_allocator)
-	for slot,i in editor.slots {
+convert_to_saveable :: proc(editor: ^Roster_Editor) -> Saveable_Roster {
+	slots := make([]Saveable_Slot, len(editor.slots), context.temp_allocator)
+	for slot, i in editor.slots {
 		slots[i] = convert_slot_to_saveable(slot)
 	}
 	return {slots}
@@ -77,36 +80,39 @@ convert_to_saveable :: proc(editor: ^Roster_Editor) -> Saveable_Roster{
 
 convert_slot_to_saveable :: proc(src: Horse_Slot) -> Saveable_Slot {
 	image := rl.LoadImageFromTexture(src.image)
+
+	// This assert makes sense, if it fails then it's an internal error
 	assert(image.format == .UNCOMPRESSED_R8G8B8A8)
+
 	return {
 		color = hsv_to_rgb(src.color),
 		name = strings.to_string(src.name),
 		image = ([^]u8)(image.data)[:image.width * image.height * 4],
 		image_height = image.height,
-		image_width = image.width
+		image_width = image.width,
 	}
 }
 
 convert_from_saveable :: proc(src: Saveable_Roster, target: ^Roster_Editor) {
-	target ^= {}
+	target^ = {}
 
 	for slot in src.slots {
-		append(&target.slots,convert_slot_from_saveable(slot))
+		append(&target.slots, convert_slot_from_saveable(slot))
 	}
 }
 
 convert_slot_from_saveable :: proc(src: Saveable_Slot) -> Horse_Slot {
 	slot := Horse_Slot{}
-	strings.write_string(&slot.name,src.name)
+	strings.write_string(&slot.name, src.name)
 	slot.color = rgb_to_hsv(src.color)
 	slot.has_image = true
 
 	img := rl.Image {
-		width = src.image_width,
-		height = src.image_height,
-		data = raw_data(src.image),
+		width   = src.image_width,
+		height  = src.image_height,
+		data    = raw_data(src.image),
 		mipmaps = 1,
-		format = .UNCOMPRESSED_R8G8B8A8
+		format  = .UNCOMPRESSED_R8G8B8A8,
 	}
 
 	slot.image = rl.LoadTextureFromImage(img)
@@ -127,31 +133,35 @@ save_roster :: proc(editor: ^Roster_Editor) {
 	switch result {
 	case .Okay:
 
-	case .Cancel, .Error:
-		assert(false)
+	case .Cancel:
+		set_roster_error(editor, "Load Cancelled")
+		return
+	case .Error:
+		set_roster_error(editor, "Unknown save error")
+		return
 	}
 
 	saveable_roster := convert_to_saveable(editor)
 
-	bytes, err := cbor.marshal(saveable_roster)
+	bytes, encode_err := cbor.marshal(saveable_roster)
 
-	if err != nil {
-		fmt.println(err)
-		assert(false)
+	if encode_err != nil {
+		err_name := fmt.tprintf("Encoding error: %v", encode_err)
+		set_roster_error(editor, err_name)
 	}
 
 	file, open_err := os2.open(string(path), {.Read, .Write, .Create})
 
 	if open_err != nil {
-		fmt.println(open_err)
-		assert(false)
+		err_name := fmt.tprintf("File open error: %v", open_err)
+		set_roster_error(editor, err_name)
 	}
 
 	_, write_err := os2.write(file, bytes)
 
 	if write_err != nil {
-		fmt.println(write_err)
-		assert(false)
+		err_name := fmt.tprintf("File write error: %v", write_err)
+		set_roster_error(editor, err_name)
 	}
 }
 
@@ -168,33 +178,45 @@ load_roster_to_edit :: proc(editor: ^Roster_Editor) {
 	switch result {
 	case .Okay:
 
-	case .Cancel, .Error:
-		assert(false)
+	case .Cancel:
+		set_roster_error(editor, "Load cancelled")
+		return
+	case .Error:
+		set_roster_error(editor, "Unknown load error")
+		return
 	}
 
 	file, open_err := os2.open(string(path), {.Read})
 
 	if open_err != nil {
-		fmt.println(open_err)
-		assert(false)
+		err_name := fmt.tprintf("File open error: %v", open_err)
+		set_roster_error(editor,err_name)
+		return
 	}
 
 	bytes, read_err := os2.read_entire_file(file, context.temp_allocator)
 
 	if read_err != nil {
-		fmt.println(read_err)
-		assert(false)
+		err_name := fmt.tprintf("File read error: %v", read_err)
+		set_roster_error(editor,err_name)
+		return
 	}
 
 	saveable_roster: Saveable_Roster
-	err := cbor.unmarshal_from_string(string(bytes), &saveable_roster)
-	
-	if err != nil {
-		fmt.println(err)
-		assert(false)
+	decode_err := cbor.unmarshal_from_string(string(bytes), &saveable_roster)
+
+	if decode_err != nil {
+		err_name := fmt.tprintf("Decoding error: %v", decode_err)
+		set_roster_error(editor,err_name)
+		return
 	}
 
 	convert_from_saveable(saveable_roster, editor)
+}
+
+set_roster_error :: proc(editor: ^Roster_Editor, message: string) {
+	editor.error_message = message
+	editor.error_active = true
 }
 
 
@@ -207,6 +229,8 @@ draw_roster_menu :: proc(editor: ^Roster_Editor) {
 	clay.UpdateScrollContainers(false, rl.GetMouseWheelMove() * 4, rl.GetFrameTime())
 
 	clay.BeginLayout()
+
+	error_box(&editor.error_active, editor.error_message)
 
 	if clay.UI()({layout = {layoutDirection = .TopToBottom, childGap = 8}}) {
 
