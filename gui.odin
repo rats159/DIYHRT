@@ -313,6 +313,7 @@ error_box :: proc(open: ^bool, message: string) {
 					clay.TextDynamic(message, &standard_button_config)
 					if error_button("Close") {
 						open ^= false
+						delete(message)
 					}
 				}
 			}

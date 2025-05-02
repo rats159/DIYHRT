@@ -121,6 +121,21 @@ convert_slot_from_saveable :: proc(src: Saveable_Slot) -> Horse_Slot {
 }
 
 save_roster :: proc(editor: ^Roster_Editor) {
+	if len(editor.slots) == 0 {
+		set_roster_error(editor, "Cannot save an empty roster!")
+		return
+	}
+	for slot in editor.slots {
+		if strings.builder_len(slot.name) == 0 {
+			set_roster_error(editor, fmt.aprintf("Horse %d has no name!", slot.index))
+			return
+		}
+		if !slot.has_image {
+			set_roster_error(editor, fmt.aprintf("Horse %s has no image!", strings.to_string(slot.name)))
+			return
+		}
+	}
+
 	path: cstring
 	filter := nfd.Filter_Item{"hrtrost Files", "hrtrost"}
 	args := nfd.Save_Dialog_Args {
@@ -146,21 +161,21 @@ save_roster :: proc(editor: ^Roster_Editor) {
 	bytes, encode_err := cbor.marshal(saveable_roster)
 
 	if encode_err != nil {
-		err_name := fmt.tprintf("Encoding error: %v", encode_err)
+		err_name := fmt.aprintf("Encoding error: %v", encode_err)
 		set_roster_error(editor, err_name)
 	}
 
 	file, open_err := os2.open(string(path), {.Read, .Write, .Create})
 
 	if open_err != nil {
-		err_name := fmt.tprintf("File open error: %v", open_err)
+		err_name := fmt.aprintf("File open error: %v", open_err)
 		set_roster_error(editor, err_name)
 	}
 
 	_, write_err := os2.write(file, bytes)
 
 	if write_err != nil {
-		err_name := fmt.tprintf("File write error: %v", write_err)
+		err_name := fmt.aprintf("File write error: %v", write_err)
 		set_roster_error(editor, err_name)
 	}
 }
@@ -189,7 +204,7 @@ load_roster_to_edit :: proc(editor: ^Roster_Editor) {
 	file, open_err := os2.open(string(path), {.Read})
 
 	if open_err != nil {
-		err_name := fmt.tprintf("File open error: %v", open_err)
+		err_name := fmt.aprintf("File open error: %v", open_err)
 		set_roster_error(editor,err_name)
 		return
 	}
@@ -197,7 +212,7 @@ load_roster_to_edit :: proc(editor: ^Roster_Editor) {
 	bytes, read_err := os2.read_entire_file(file, context.temp_allocator)
 
 	if read_err != nil {
-		err_name := fmt.tprintf("File read error: %v", read_err)
+		err_name := fmt.aprintf("File read error: %v", read_err)
 		set_roster_error(editor,err_name)
 		return
 	}
@@ -206,7 +221,7 @@ load_roster_to_edit :: proc(editor: ^Roster_Editor) {
 	decode_err := cbor.unmarshal_from_string(string(bytes), &saveable_roster)
 
 	if decode_err != nil {
-		err_name := fmt.tprintf("Decoding error: %v", decode_err)
+		err_name := fmt.aprintf("Decoding error: %v", decode_err)
 		set_roster_error(editor,err_name)
 		return
 	}
@@ -214,7 +229,8 @@ load_roster_to_edit :: proc(editor: ^Roster_Editor) {
 	convert_from_saveable(saveable_roster, editor)
 }
 
-set_roster_error :: proc(editor: ^Roster_Editor, message: string) {
+set_roster_error :: proc(editor: ^Roster_Editor, message: string, location := #caller_location) {
+	fmt.printfln("Error message triggered at %v: %s", location, message)
 	editor.error_message = message
 	editor.error_active = true
 }

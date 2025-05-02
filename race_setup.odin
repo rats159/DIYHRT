@@ -63,7 +63,8 @@ draw_race_setup :: proc(world: ^World) {
 }
 
 @(private = "file")
-set_setup_error_message :: proc(text: string) {
+set_setup_error_message :: proc(text: string, loc := #caller_location) {
+	fmt.printfln("Error message triggered at %v", loc)
 	setup_error_message = text
 	setup_error_active = true
 }
@@ -132,7 +133,7 @@ load_roster_to_race :: proc(world: ^World) {
 	file, open_err := os2.open(string(path), {.Read})
 
 	if open_err != nil {
-		err_name := fmt.tprintf("File open error: %v",open_err)
+		err_name := fmt.aprintf("File open error: %v",open_err)
 		set_setup_error_message(err_name)
 		return
 	}
@@ -140,7 +141,7 @@ load_roster_to_race :: proc(world: ^World) {
 	bytes, read_err := os2.read_entire_file(file, context.temp_allocator)
 
 	if read_err != nil {
-		err_name := fmt.tprintf("File read error: %v",read_err)
+		err_name := fmt.aprintf("File read error: %v",read_err)
 		set_setup_error_message(err_name)
 		return
 	}
@@ -149,7 +150,7 @@ load_roster_to_race :: proc(world: ^World) {
 	unmarshal_err := cbor.unmarshal_from_string(string(bytes), &saveable_roster)
 
 	if unmarshal_err != nil {
-		err_name := fmt.tprintf("Decoding error: %v",unmarshal_err)
+		err_name := fmt.aprintf("Decoding error: %v",unmarshal_err)
 		set_setup_error_message(err_name)
 		return
 	}
@@ -207,7 +208,7 @@ load_map_to_race :: proc(world: ^World) {
 	defer delete(race_data)
 
 	if err != nil {
-		err_name := fmt.tprintf("File read error: %v",err)
+		err_name := fmt.aprintf("File read error: %v",err)
 		set_setup_error_message(err_name)
 		return
 	}
@@ -222,7 +223,7 @@ load_map_to_race :: proc(world: ^World) {
 	defer delete(save_data.horse_spawns)
 
 	if decode_err != nil {
-		err_name := fmt.tprintf("Decode error: %v",decode_err)
+		err_name := fmt.aprintf("Decode error: %v",decode_err)
 		set_setup_error_message(err_name)
 		return
 	}

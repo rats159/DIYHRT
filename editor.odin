@@ -391,7 +391,7 @@ save_map :: proc(editor: ^Editor_Data) {
 	bytes, err := cbor.marshal(data)
 
 	if err != nil {
-		err_name := fmt.tprintf("Encoding error: %v",err)
+		err_name := fmt.aprintf("Encoding error: %v",err)
 		set_error_message(editor, err_name)
 		return
 	}
@@ -399,7 +399,7 @@ save_map :: proc(editor: ^Editor_Data) {
 	file, open_err := os2.open(string(path), {.Read, .Write, .Create})
 
 	if open_err != nil {
-		err_name := fmt.tprintf("File open error: %v",open_err)
+		err_name := fmt.aprintf("File open error: %v",open_err)
 		set_error_message(editor, err_name)
 		return
 	}
@@ -407,7 +407,7 @@ save_map :: proc(editor: ^Editor_Data) {
 	_, write_err := os2.write(file, bytes)
 
 	if write_err != nil {
-		err_name := fmt.tprintf("File write error: %v",write_err)
+		err_name := fmt.aprintf("File write error: %v",write_err)
 		set_error_message(editor, err_name)
 		return
 	}
