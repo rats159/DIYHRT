@@ -360,6 +360,7 @@ save_map :: proc(editor: ^Editor_Data) {
 	}
 
 	runs := [dynamic]u32{}
+	defer delete(runs)
 
 	a: u8 = 255
 	run_length: u32 = 0

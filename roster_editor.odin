@@ -48,7 +48,6 @@ draw_roster_editor :: proc(editor: ^Roster_Editor) {
 tick_roster_editor :: proc(editor: ^Roster_Editor) {
 	tick_text_inputs(editor)
 	if rl.IsKeyPressed(.F11) {
-		fmt.println("Debug!")
 		clay.SetDebugModeEnabled(!clay.IsDebugModeEnabled())
 	}
 }

@@ -6,6 +6,9 @@ import "core:encoding/json"
 import "core:fmt"
 import "core:os/os2"
 import rl "vendor:raylib"
+import "core:mem"
+import "base:runtime"
+import "core:strings"
 
 
 GameMode :: enum {
@@ -44,6 +47,11 @@ PAPYRUS :: 2
 
 
 main :: proc() {
+	track: mem.Tracking_Allocator
+	mem.tracking_allocator_init(&track, context.allocator)
+	defer mem.tracking_allocator_destroy(&track)
+	context.allocator = mem.tracking_allocator(&track)
+
 	nfd.Init()
 	rl.InitWindow(720, 540, "DIY HRT")
 	setup_clay()
@@ -84,6 +92,24 @@ main :: proc() {
 
 	rl.CloseWindow()
 	nfd.Quit()
+
+	cleanup()
+
+	for _, leak in track.allocation_map {
+		fmt.printf("%v leaked %m\n", leak.location, leak.size)
+	}
+}
+
+cleanup :: proc() {
+	cleanup_world(&world)
+	delete(editor.horseSpawns)
+
+	for &slot in roster_editor.slots {
+		strings.builder_destroy(&slot.name)
+	}
+	delete(roster_editor.slots)
+
+	cleanup_gui()
 }
 
 load_assets :: proc() {
@@ -167,25 +193,25 @@ draw_main_menu :: proc() {
 }
 
 decode_rle :: proc(rle: []u32) -> rl.Image {
-	texture_data := [dynamic]u8{}
+	texture_data := make([][4]u8, 720 * 540)
 
 	black := [4]u8{0, 0, 0, 255}
 	alpha := [4]u8{0, 0, 0, 0}
 
 	current := black
 
+	index := 0
+
 	for run in rle {
 		for pixel in 0 ..< run {
-			append(&texture_data, current.r)
-			append(&texture_data, current.g)
-			append(&texture_data, current.b)
-			append(&texture_data, current.a)
+			texture_data[index] = current
+			index += 1
 		}
 		current = black if current == alpha else alpha
 
 	}
 
-	assert(len(texture_data) == 720 * 540 * 4)
+	assert(index == 720 * 540)
 
 	img := rl.Image {
 		format  = .UNCOMPRESSED_R8G8B8A8,

@@ -12,14 +12,21 @@ WHITE :: [4]f32{255, 255, 255, 255}
 
 editor_bg: rl.Texture
 
+clay_mem: [^]u8
+
 setup_clay :: proc() {
 	min_mem_size := clay.MinMemorySize()
-	memory := make([^]u8, min_mem_size)
-	arena := clay.CreateArenaWithCapacityAndMemory(uint(min_mem_size), memory)
+	clay_mem = make([^]u8, min_mem_size)
+	arena := clay.CreateArenaWithCapacityAndMemory(uint(min_mem_size), clay_mem)
 
 	clay.Initialize(arena, {f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())}, {})
 	clay.SetMeasureTextFunction(measureText, nil)
 }
+
+cleanup_gui :: proc() {
+	delete(raylibFonts)
+	free(clay_mem)
+} 
 
 // taken from https://github.com/nicbarker/clay/blob/main/bindings/odin/examples/clay-official-website/clay-official-website.odin
 loadFont :: proc(fontId: u16, fontSize: u16, path: cstring) {

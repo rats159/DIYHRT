@@ -137,3 +137,33 @@ is_transparent :: proc(img: rl.Image, x, y: f32) -> bool {
 	}
 	return false
 }
+
+cleanup_world :: proc(world: ^World) {
+	for horse in world.horses {
+		rl.UnloadTexture(horse.tex)
+		delete(horse.name)
+	}
+	free(world.walls.data)
+	delete(world.horses)
+	delete(world.horseSpawns)
+
+	for horse in world.horse_queue {
+		free(horse.image.data)
+		delete(horse.name)
+	}
+
+	delete(world.horse_queue)
+	rl.UnloadTexture(world.walls_tex)
+}
+
+reset_world :: proc(world: ^World) {
+	for horse in world.horses {
+		rl.UnloadTexture(horse.tex)
+		delete(horse.name)
+	}
+	free(world.walls.data)
+	clear(&world.horses)
+	clear(&world.horseSpawns)
+	delete(world.horse_queue)
+	rl.UnloadTexture(world.walls_tex)
+}

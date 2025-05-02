@@ -140,11 +140,21 @@ load_roster_to_race :: proc(world: ^World) {
 
 	load_roster_into_world(saveable_roster, world)
 	world.roster_loaded = true
+    
+    delete(saveable_roster.slots)
 }
 
 load_roster_into_world :: proc(roster: Saveable_Roster, world: ^World) {
+    if world.horse_queue != nil {
+        for horse in world.horse_queue {
+            free(horse.image.data)
+            rl.UnloadTexture(horse.tex)
+            delete(horse.name)
+        }
+        delete(world.horse_queue)
+    }
 	world.horse_queue = make([]Horse, len(roster.slots))
-	for slot, i in roster.slots {
+	for &slot, i in roster.slots {
 		img := rl.Image {
 			width   = slot.image_width,
 			height  = slot.image_height,
@@ -184,8 +194,15 @@ load_map_to_race :: proc(world: ^World) {
 		assert(false)
 	}
 
+    if world.walls_loaded{
+        reset_world(world)
+    }
+
 	save_data: Save_Data
 	decode_err := json.unmarshal(race_data, &save_data)
+    defer delete(save_data.map_data)
+    defer delete(save_data.horse_spawns)
+
 	if decode_err != nil {
 		fmt.println(decode_err)
 		assert(false)
