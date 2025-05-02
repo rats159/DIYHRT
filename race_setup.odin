@@ -7,13 +7,53 @@ import "core:fmt"
 import "core:os/os2"
 import rl "vendor:raylib"
 
+setup_error_message: string
+setup_error_active: bool
+
 init_race_setup :: proc() {
-    world = make_world()
+	world = make_world()
 }
 
 draw_race_setup :: proc(world: ^World) {
 	clay.SetPointerState(rl.GetMousePosition(), rl.IsMouseButtonDown(.LEFT))
 	clay.BeginLayout()
+
+	if setup_error_active {
+		if clay.UI()(
+		{
+			layout = {
+				sizing = {width = clay.SizingGrow({}), height = clay.SizingGrow({})},
+				childAlignment = {x = .Center, y = .Center},
+			},
+			floating = {attachTo = .Root, zIndex = 99},
+			backgroundColor = {0, 0, 0, 192},
+		},
+		) {
+			if clay.UI()(
+			{
+				layout = {layoutDirection = .TopToBottom, childGap = 4},
+				backgroundColor = {255, 255, 255, 255},
+				border = {color = {0, 0, 0, 255}, width = {2, 2, 2, 2, 2}},
+			},
+			) {
+				window_titlebar("Uh Oh!")
+				if clay.UI()(
+				{
+					layout = {
+						layoutDirection = .TopToBottom,
+						padding = clay.PaddingAll(8),
+						childAlignment = {x = .Center},
+					},
+				},
+				) {
+					clay.TextDynamic(setup_error_message, &standard_button_config)
+					if error_button("Close") {
+						setup_error_active = false
+					}
+				}
+			}
+		}
+	}
 
 
 	if clay.UI()({}) {
@@ -29,22 +69,21 @@ draw_race_setup :: proc(world: ^World) {
 	}
 	h_fill()
 
-    if clay.UI()({
-        floating = {
-            attachTo = .Root,
-            attachment = {
-                parent = .LeftBottom,
-                element = .LeftBottom
-            }
-        }
-    }){
-        if button("Begin!") {
-            for horse in world.horse_queue {
-                spawn_horse(world, horse)
-            }
-            mode = .Bet
-        }
-    }
+	if clay.UI()(
+	{floating = {attachTo = .Root, attachment = {parent = .LeftBottom, element = .LeftBottom}}},
+	) {
+		if button("Begin!") {
+			if !world.walls_loaded || !world.roster_loaded {
+				set_setup_error_message("A race needs a roster and a track!")
+				return
+			} else {
+				for horse in world.horse_queue {
+					spawn_horse(world, horse)
+				}
+				mode = .Bet
+			}
+		}
+	}
 
 	if world.roster_loaded {
 		draw_setup_roster(world)
@@ -52,10 +91,15 @@ draw_race_setup :: proc(world: ^World) {
 
 	render_commands := clay.EndLayout()
 
-    if world.walls_loaded {
-        draw_world(world)
-    }
+	if world.walls_loaded {
+		draw_world(world)
+	}
 	clayRaylibRender(&render_commands)
+}
+
+set_setup_error_message :: proc($text: string) {
+	setup_error_message = text
+	setup_error_active = true
 }
 
 draw_setup_roster :: proc(world: ^World) {
@@ -140,18 +184,18 @@ load_roster_to_race :: proc(world: ^World) {
 	load_roster_into_world(saveable_roster, world)
 	world.roster_loaded = true
 
-    delete(saveable_roster.slots)
+	delete(saveable_roster.slots)
 }
 
 load_roster_into_world :: proc(roster: Saveable_Roster, world: ^World) {
-    if world.horse_queue != nil {
-        for horse in world.horse_queue {
-            free(horse.image.data)
-            rl.UnloadTexture(horse.tex)
-            delete(horse.name)
-        }
-        delete(world.horse_queue)
-    }
+	if world.horse_queue != nil {
+		for horse in world.horse_queue {
+			free(horse.image.data)
+			rl.UnloadTexture(horse.tex)
+			delete(horse.name)
+		}
+		delete(world.horse_queue)
+	}
 	world.horse_queue = make([]Horse, len(roster.slots))
 	for &slot, i in roster.slots {
 		img := rl.Image {
@@ -193,14 +237,14 @@ load_map_to_race :: proc(world: ^World) {
 		assert(false)
 	}
 
-    if world.walls_loaded{
-        reset_world(world)
-    }
+	if world.walls_loaded {
+		reset_world(world)
+	}
 
 	save_data: Save_Data
-	decode_err := cbor.unmarshal_from_string(string(race_data), &save_data) 
-    defer delete(save_data.map_data)
-    defer delete(save_data.horse_spawns)
+	decode_err := cbor.unmarshal_from_string(string(race_data), &save_data)
+	defer delete(save_data.map_data)
+	defer delete(save_data.horse_spawns)
 
 	if decode_err != nil {
 		fmt.println(decode_err)
@@ -228,5 +272,5 @@ load_map_to_race :: proc(world: ^World) {
 	set_color("u_foreground2", &save_data.foreground_2)
 	set_color("u_background1", &save_data.background_1)
 	set_color("u_background2", &save_data.background_2)
-    world.walls_loaded = true
+	world.walls_loaded = true
 }
