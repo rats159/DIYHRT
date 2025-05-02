@@ -3,7 +3,6 @@ package hrt
 import clay "./clay-odin"
 import nfd "./nativefiledialog"
 import "core:encoding/cbor"
-import "core:encoding/json"
 import "core:fmt"
 import "core:os/os2"
 import rl "vendor:raylib"
@@ -140,7 +139,7 @@ load_roster_to_race :: proc(world: ^World) {
 
 	load_roster_into_world(saveable_roster, world)
 	world.roster_loaded = true
-    
+
     delete(saveable_roster.slots)
 }
 
@@ -199,7 +198,7 @@ load_map_to_race :: proc(world: ^World) {
     }
 
 	save_data: Save_Data
-	decode_err := json.unmarshal(race_data, &save_data)
+	decode_err := cbor.unmarshal_from_string(string(race_data), &save_data) 
     defer delete(save_data.map_data)
     defer delete(save_data.horse_spawns)
 

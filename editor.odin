@@ -3,7 +3,7 @@ package hrt
 import clay "./clay-odin"
 import nfd "./nativefiledialog"
 import "core:container/bit_array"
-import "core:encoding/json"
+import "core:encoding/cbor"
 import "core:fmt"
 import "core:math/linalg"
 import "core:os/os2"
@@ -396,7 +396,7 @@ save_map :: proc(editor: ^Editor_Data) {
 		map_data     = runs[:],
 	}
 
-	bytes, err := json.marshal(data)
+	bytes, err := cbor.marshal(data)
 
 	if err != nil {
 		fmt.println(err)

@@ -149,7 +149,6 @@ cleanup_world :: proc(world: ^World) {
 
 	for horse in world.horse_queue {
 		free(horse.image.data)
-		delete(horse.name)
 	}
 
 	delete(world.horse_queue)

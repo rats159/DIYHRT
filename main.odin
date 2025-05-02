@@ -2,7 +2,7 @@ package hrt
 
 import clay "./clay-odin"
 import nfd "./nativefiledialog"
-import "core:encoding/json"
+import "core:encoding/cbor"
 import "core:fmt"
 import "core:os/os2"
 import rl "vendor:raylib"
