@@ -236,7 +236,21 @@ draw_winner :: proc() {
 		fontId    = PAPYRUS,
 	}
 
+	clay.SetPointerState(
+		transmute(clay.Vector2)rl.GetMousePosition(),
+		rl.IsMouseButtonDown(rl.MouseButton.LEFT),
+	)
+
 	clay.BeginLayout()
+
+	if clay.UI()({
+		floating = {
+			attachTo = .Root
+		}
+	}){
+	if button("Main Menu") {
+		mode = .Main_Menu
+	}}
 
 	if clay.UI()(
 	{layout = {sizing = {height = clay.SizingGrow({})}, childAlignment = {y = .Bottom}}},
